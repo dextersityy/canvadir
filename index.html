@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galeri Desain Canva</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--text:#1d1b19;--muted:#7a746c;--line:#e8e3dc;--accent:#7c3aed;--ph:#efe9ff}
+@media (prefers-color-scheme:dark){:root{--bg:#151413;--card:#1f1d1b;--text:#f1ede7;--muted:#a09a91;--line:#2e2b28;--accent:#a78bfa;--ph:#2a2440}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;line-height:1.5}
+header{max-width:1000px;margin:0 auto;padding:40px 20px 12px}
+h1{margin:0 0 6px;font-size:clamp(26px,5vw,38px)}
+header p{margin:0;color:var(--muted)}
+.bar{max-width:1000px;margin:0 auto;padding:12px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input{flex:1;min-width:180px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:15px}
+.count{color:var(--muted);font-size:14px}
+main{max-width:1000px;margin:0 auto;padding:8px 20px 48px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.thumb{aspect-ratio:4/3;background:var(--ph);display:flex;align-items:center;justify-content:center}
+.thumb img{width:100%;height:100%;object-fit:contain}
+.thumb span{font-size:40px;opacity:.6}
+.info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.info h3{margin:0;font-size:15px}
+.meta{font-size:12px;color:var(--muted)}
+.links{display:flex;gap:8px;margin-top:auto;padding-top:10px}
+.links a{font-size:13px;text-decoration:none;padding:6px 12px;border-radius:8px;border:1px solid var(--line);color:var(--text)}
+.links a.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.msg{max-width:1000px;margin:0 auto;padding:20px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header><h1>Galeri Desain Canva</h1><p>Diambil otomatis lewat Canva Connect API.</p></header>
+<div class="bar"><input id="q" type="search" placeholder="Cari judul desain..."><span class="count" id="count"></span></div>
+<div class="msg" id="msg">Memuat...</div>
+<main id="grid"></main>
+<script>
+let designs = [];
+const grid = document.getElementById('grid'), count = document.getElementById('count'), q = document.getElementById('q'), msg = document.getElementById('msg');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = t => new Date(t*1000).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+
+function render(){
+  const k = q.value.trim().toLowerCase();
+  const list = designs.filter(d => (d.title || 'tanpa judul').toLowerCase().includes(k));
+  count.textContent = list.length + ' desain';
+  grid.innerHTML = list.map(d => `
+    <article class="card">
+      <div class="thumb">${d.thumb ? `<img src="${esc(d.thumb)}" alt="" loading="lazy">` : '<span>🎨</span>'}</div>
+      <div class="info">
+        <h3>${esc(d.title || 'Tanpa judul')}</h3>
+        <div class="meta">${d.pages} halaman · diubah ${fmt(d.updated)}</div>
+        <div class="links"><a class="p" href="${esc(d.view)}" target="_blank" rel="noopener">Lihat</a><a href="${esc(d.edit)}" target="_blank" rel="noopener">Edit</a></div>
+      </div>
+    </article>`).join('');
+}
+
+fetch('/api/designs').then(async r => {
+  const j = await r.json();
+  if (r.status === 401) { msg.innerHTML = 'Belum terhubung. <a href="' + j.login + '">Login ke Canva</a>'; return; }
+  if (!r.ok) { msg.textContent = 'Gagal: ' + j.error; return; }
+  designs = j; msg.remove(); render();
+}).catch(e => msg.textContent = 'Gagal memuat: ' + e.message);
+q.addEventListener('input', render);
+</script>
+</body>
+</html>
